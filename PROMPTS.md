@@ -1,4 +1,4 @@
-# \# AI Usage Log
+﻿# \# AI Usage Log
 
 # 
 
@@ -6,7 +6,7 @@
 
 # 
 
-# \## Entry 1 – 2026-11-05 – Backend architecture and database models
+# \## Entry 1 â€“ 2026-11-05 â€“ Backend architecture and database models
 
 # 
 
@@ -18,11 +18,11 @@
 
 # \- \*\*What I changed:\*\* Implemented the database models for users, documents, document permissions and audit logs. Verified that all four models imported and their database tables were created successfully.
 
-# \- \*\*Commit:\*\* Pending GitHub push.
+# \- \*\*Commit:\*\* https://github.com/meenakshiperumalla05-hub/TrustVault/commit/1badb92.
 
 # 
 
-# \## Entry 2 – 2026-11-05 – Authentication and password security
+# \## Entry 2 â€“ 2026-11-05 â€“ Authentication and password security
 
 # 
 
@@ -34,11 +34,11 @@
 
 # \- \*\*What I changed:\*\* Registration assigns the Viewer role by default. Passwords are hashed with Argon2. Login and the authenticated profile endpoint were tested successfully.
 
-# \- \*\*Commit:\*\* Pending GitHub push.
+# \- \*\*Commit:\*\* https://github.com/meenakshiperumalla05-hub/TrustVault/commit/1badb92.
 
 # 
 
-# \## Entry 3 – 2026-11-05 – Document authorization and permission revocation
+# \## Entry 3 â€“ 2026-11-05 â€“ Document authorization and permission revocation
 
 # 
 
@@ -50,11 +50,11 @@
 
 # \- \*\*What I changed:\*\* Implemented backend access-control checks and permission grant/revoke endpoints. The integrated security script verified private document isolation, EDIT access, revocation and denial after revocation.
 
-# \- \*\*Commit:\*\* Pending GitHub push.
+# \- \*\*Commit:\*\* https://github.com/meenakshiperumalla05-hub/TrustVault/commit/1badb92.
 
 # 
 
-# \## Entry 4 – 2026-11-05 – Audit logging and document security
+# \## Entry 4 â€“ 2026-11-05 â€“ Audit logging and document security
 
 # 
 
@@ -66,11 +66,11 @@
 
 # \- \*\*What I changed:\*\* Implemented audit event recording and the Admin audit endpoint. Added file size, extension and content validation and SHA-256 verification on download. Verified audit retrieval and denied-access recording. Tamper-resistant audit storage remains future work.
 
-# \- \*\*Commit:\*\* Pending GitHub push.
+# \- \*\*Commit:\*\* https://github.com/meenakshiperumalla05-hub/TrustVault/commit/1badb92.
 
 # 
 
-# \## Entry 5 – 2026-11-06 – Frontend integration and security checks
+# \## Entry 5 â€“ 2026-11-06 â€“ Frontend integration and security checks
 
 # 
 
@@ -82,7 +82,7 @@
 
 # \- \*\*What I changed:\*\* Updated the sharing request to send the recipient email and added safe error formatting. Verified successful sharing and Viewer access restrictions. The frontend production build passed, backend tests reported 1 passed, and all 14 integrated security checks passed.
 
-# \- \*\*Commit:\*\* Pending GitHub push.
+# \- \*\*Commit:\*\* https://github.com/meenakshiperumalla05-hub/TrustVault/commit/1badb92.
 
 # 
 
@@ -95,4 +95,5 @@
 # 
 
 # The developer remains responsible for understanding, reviewing, testing and maintaining the submitted implementation.
+
 
