@@ -1,14 +1,14 @@
-
 import hashlib
 import hmac
 import logging
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import (
     APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 )
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -20,7 +20,11 @@ from app.models.document import Document
 from app.models.permission import DocumentPermission, PermissionLevel
 from app.models.audit_log import AuditLog, AuditAction
 from app.routers.auth import get_current_user
-from app.services.file_storage import save_upload
+from app.services.file_storage import (
+    save_upload,
+    read_stored_file,
+    delete_stored_file,
+)
 from app.services.access_control import (
     require_document_read_access,
     require_document_edit_access,
@@ -135,13 +139,19 @@ async def upload_document(
     except HTTPException:
         db.rollback()
         if saved_file:
-            Path(saved_file["file_path"]).unlink(missing_ok=True)
+            try:
+                await delete_stored_file(saved_file["file_path"])
+            except Exception:
+                logger.exception("Upload cleanup failed")
         raise
 
     except Exception:
         db.rollback()
         if saved_file:
-            Path(saved_file["file_path"]).unlink(missing_ok=True)
+            try:
+                await delete_stored_file(saved_file["file_path"])
+            except Exception:
+                logger.exception("Upload cleanup failed")
         logger.exception("Document upload failed")
         raise HTTPException(500, "Document upload failed")
 
@@ -262,7 +272,7 @@ def get_document_details(
 # 4. DOWNLOAD DOCUMENT
 
 @router.get("/{document_id}/download")
-def download_document(
+async def download_document(
     document_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -284,26 +294,22 @@ def download_document(
             )
         raise
 
-    file_path = Path(document.file_path)
+    try:
+        file_bytes = await read_stored_file(document.file_path)
+    except HTTPException as error:
+        if error.status_code == 404:
+            db.add(AuditLog(
+                actor_id=current_user.id,
+                document_id=document.id,
+                action=AuditAction.ACCESS_DENIED,
+                status="integrity_failed",
+                details="Download failed: stored file is missing",
+            ))
+            db.commit()
+            raise HTTPException(404, "Stored file not found")
+        raise
 
-    if not file_path.is_file():
-        db.add(AuditLog(
-            actor_id=current_user.id,
-            document_id=document.id,
-            action=AuditAction.ACCESS_DENIED,
-            status="integrity_failed",
-            details="Download failed: stored file is missing",
-        ))
-        db.commit()
-        raise HTTPException(404, "Stored file not found")
-
-    sha256 = hashlib.sha256()
-
-    with file_path.open("rb") as stored_file:
-        for chunk in iter(lambda: stored_file.read(1024 * 1024), b""):
-            sha256.update(chunk)
-
-    actual_hash = sha256.hexdigest()
+    actual_hash = hashlib.sha256(file_bytes).hexdigest()
 
     if not hmac.compare_digest(actual_hash, document.file_hash):
         db.add(AuditLog(
@@ -326,10 +332,14 @@ def download_document(
     ))
     db.commit()
 
-    return FileResponse(
-        path=str(file_path),
+    return Response(
+        content=file_bytes,
         media_type=document.content_type or "application/octet-stream",
-        filename=document.name,
+        headers={
+            "Content-Disposition": (
+                f"attachment; filename*=UTF-8''{quote(document.name)}"
+            )
+        },
     )
 
 
@@ -612,7 +622,7 @@ def revoke_document_access(
 # 9. DELETE DOCUMENT
 
 @router.delete("/{document_id}")
-def delete_document(
+async def delete_document(
     document_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -634,7 +644,7 @@ def delete_document(
             )
         raise
 
-    file_path = Path(document.file_path)
+    file_path = document.file_path
     document_id_for_audit = document.id
     document_name = document.name
 
@@ -654,14 +664,24 @@ def delete_document(
         db.delete(document)
         db.commit()
 
-        file_path.unlink(missing_ok=True)
-
-        return {
-            "message": "Document deleted successfully",
-            "document_id": document_id_for_audit,
-        }
-
     except Exception:
         db.rollback()
         logger.exception("Document deletion failed")
         raise HTTPException(500, "Document deletion failed")
+
+    try:
+        await delete_stored_file(file_path)
+    except Exception:
+        logger.exception(
+            "Document record deleted, but storage cleanup failed for %s",
+            file_path,
+        )
+        raise HTTPException(
+            502,
+            "Document record deleted, but stored file cleanup failed",
+        )
+
+    return {
+        "message": "Document deleted successfully",
+        "document_id": document_id_for_audit,
+    }

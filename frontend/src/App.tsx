@@ -7,7 +7,7 @@ import {
   RefreshCw, X, FolderLock
 } from "lucide-react";
 
-const API = "http://127.0.0.1:8001";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
 const api = axios.create({ baseURL: API });
 const getErrorMessage = (err: any, fallback: string): string => {
